@@ -57,10 +57,13 @@ type GetResult struct {
 	Status  GetStatus
 }
 
+func computeHashKeyAndIndex(hash uint64, mask uint32) (uint32, uint32) {
+	return uint32(hash >> 32), uint32(hash) & mask
+}
+
 func (m *Memtable) getLeaseList(key []byte) (uint32, *leaseList) {
 	hash := hashFunc(key)
-	index := uint32(hash) % m.mask
-	hashKey := uint32(hash >> 32)
+	hashKey, index := computeHashKeyAndIndex(hash, m.mask)
 	return hashKey, &m.leases[index]
 }
 

@@ -1,7 +1,9 @@
 package memtable
 
 import (
+	"fmt"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -53,6 +55,19 @@ func TestCeilPowerOfTwo(t *testing.T) {
 
 	result = ceilPowerOfTwo(0)
 	assertEqualUint32(t, 1, result)
+}
+
+func TestMemtable_New(t *testing.T) {
+	m := New(1<<20, WithNumBuckets(120), WithLeaseListSize(5))
+	if m.mask != 0x7f {
+		t.Error("expected 0x7f, actual:", m.mask)
+	}
+	if len(m.leases) != 128 {
+		t.Error("expected 128, actual:", len(m.leases))
+	}
+	if len(m.leases[0].list) != 8 {
+		t.Error("expected 8, actual:", len(m.leases[0].list))
+	}
 }
 
 func TestMemtable_Get_Rejected(t *testing.T) {
@@ -180,4 +195,57 @@ func TestMemtable_Get_Second_Times_Before_Lease_Timeout(t *testing.T) {
 	assertEqualBytes(t, nil, result.Value)
 	assertEqualUint32(t, 0, result.LeaseID)
 	assertEqualGetStatus(t, GetStatusLeaseRejected, result.Status)
+}
+
+func TestComputeHashAndIndex(t *testing.T) {
+	hash := uint64(0xaabbccdd11223344)
+	key, index := computeHashKeyAndIndex(hash, 0xff)
+	if key != 0xaabbccdd {
+		t.Error("expected 0xaabbccdd, actual:", key)
+	}
+	if index != 0x44 {
+		t.Error("expected 0x44, actual:", index)
+	}
+}
+
+func BenchmarkGetSet(b *testing.B) {
+	b.StopTimer()
+
+	m := New(128 << 20)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		key := []byte(fmt.Sprint("key-", i))
+		result := m.Get(key)
+		affected := m.Set(key, result.LeaseID, []byte("value"))
+		if !affected {
+			panic("not affected")
+		}
+	}
+}
+
+func BenchmarkParallelGetSet(b *testing.B) {
+	b.StopTimer()
+
+	m := New(128<<20, WithNumBuckets(128), WithLeaseListSize(4))
+
+	b.StartTimer()
+
+	index := uint64(0)
+	b.RunParallel(func(pb *testing.PB) {
+		noopCount := 0
+
+		for pb.Next() {
+			i := atomic.AddUint64(&index, 1)
+
+			key := []byte(fmt.Sprint("key-", i))
+			result := m.Get(key)
+			affected := m.Set(key, result.LeaseID, []byte("value"))
+			if !affected {
+				noopCount++
+			}
+		}
+
+		fmt.Println(noopCount)
+	})
 }

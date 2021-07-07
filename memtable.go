@@ -34,10 +34,6 @@ func hashFunc(data []byte) uint64 {
 	return xxhash.Sum64(data)
 }
 
-func computeHashKey(key []byte) uint32 {
-	return uint32(hashFunc(key))
-}
-
 func getNow() uint32 {
 	return uint32(time.Now().Unix())
 }
@@ -62,8 +58,9 @@ type GetResult struct {
 }
 
 func (m *Memtable) getLeaseList(key []byte) (uint32, *leaseList) {
-	hashKey := computeHashKey(key)
-	index := hashKey % m.mask
+	hash := hashFunc(key)
+	index := uint32(hash) % m.mask
+	hashKey := uint32(hash >> 32)
 	return hashKey, &m.leases[index]
 }
 

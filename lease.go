@@ -21,6 +21,13 @@ func (l *leaseList) init(size uint32, expire uint32) {
 	l.expire = expire
 }
 
+func (l *leaseList) increase() {
+	l.nextLease++
+	if l.nextLease == 0 {
+		l.nextLease = 1
+	}
+}
+
 func (l *leaseList) getLease(hash uint32, now uint32) (uint32, bool) {
 	for i, e := range l.list {
 		if e.createdAt+l.expire <= now {
@@ -41,7 +48,7 @@ func (l *leaseList) getLease(hash uint32, now uint32) (uint32, bool) {
 		}
 	}
 
-	l.nextLease++
+	l.increase()
 	l.list[minIndex] = leaseEntry{
 		hash:      hash,
 		lease:     l.nextLease,

@@ -1,6 +1,7 @@
 package memtable
 
 import (
+	"math"
 	"testing"
 	"unsafe"
 )
@@ -125,6 +126,45 @@ func TestLeaseList_GetLease_WhenFull(t *testing.T) {
 	id, ok = l.getLease(200, 1000)
 	assertTrue(t, ok)
 	assertEqualUint32(t, 7, id)
+}
+
+func TestLeaseList_GetLease_WhenFull_LeaseID_Check_Out_Of_Order(t *testing.T) {
+	var l leaseList
+	l.init(4, 4000)
+	l.getLease(100, 1000)
+	l.getLease(200, 1000)
+	l.getLease(300, 1000)
+	l.getLease(400, 1000)
+
+	assertEqualUint32(t, 4, l.list[3].lease)
+
+	affected := l.deleteLease(100, 1)
+	assertTrue(t, affected)
+
+	id, ok := l.getLease(500, 1000)
+	assertTrue(t, ok)
+	assertEqualUint32(t, 5, id)
+
+	id, ok = l.getLease(600, 1000)
+	assertTrue(t, ok)
+	assertEqualUint32(t, 6, id)
+
+	id, ok = l.getLease(300, 1200)
+	assertFalse(t, ok)
+}
+
+func TestLeaseList_SameHash_When_NextLease_Equal_Max(t *testing.T) {
+	var l leaseList
+	l.init(4, 4000)
+	l.nextLease = math.MaxUint32
+
+	id, ok := l.getLease(1234, 1000)
+	assertTrue(t, ok)
+	assertEqualUint32(t, 1, id)
+
+	id, ok = l.getLease(1234, 2000)
+	assertFalse(t, ok)
+	assertEqualUint32(t, 0, id)
 }
 
 func TestLeaseListSize(t *testing.T) {

@@ -1,4 +1,6 @@
 # Library for Consistent Cache
+[![Go Report Card](https://goreportcard.com/badge/github.com/quangtung97/memtable)](https://goreportcard.com/report/github.com/quangtung97/memtable)
+[![GoCover](http://gocover.io/_badge/github.com/quangtung97/memtable)](http://gocover.io/github.com/quangtung97/memtable)
 
 Based on the [freecache](https://github.com/coocood/freecache) library and the 'leasing' mechanism of the paper
 [Scaling Memcache at Facebook](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf).

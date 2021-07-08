@@ -126,6 +126,11 @@ func (m *Memtable) Invalidate(key []byte) (affected bool) {
 	return m.cache.Del(key)
 }
 
+// GetUnsafeInnerCache returns the freecache
+func (m *Memtable) GetUnsafeInnerCache() *freecache.Cache {
+	return m.cache
+}
+
 func ceilPowerOfTwo(n uint32) uint32 {
 	if n == 0 {
 		return 1

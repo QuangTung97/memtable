@@ -69,29 +69,30 @@ func (m *Memtable) getLeaseList(key []byte) (uint32, *leaseList) {
 
 // Get value from the cache
 func (m *Memtable) Get(key []byte) GetResult {
+	value, err := m.cache.Get(key)
+	if err == nil {
+		return GetResult{
+			Status: GetStatusFound,
+			Value:  value,
+		}
+	}
+
+	// WHEN err = freecache.ErrNotFound
 	hashKey, l := m.getLeaseList(key)
 
 	l.mut.Lock()
 	defer l.mut.Unlock()
 
-	value, err := m.cache.Get(key)
-	if err == freecache.ErrNotFound {
-		leaseID, ok := l.getLease(hashKey, getNow())
-		if !ok {
-			return GetResult{
-				Status: GetStatusLeaseRejected,
-			}
-		}
-
+	leaseID, ok := l.getLease(hashKey, getNow())
+	if !ok {
 		return GetResult{
-			LeaseID: leaseID,
-			Status:  GetStatusLeaseGranted,
+			Status: GetStatusLeaseRejected,
 		}
 	}
 
 	return GetResult{
-		Value:  value,
-		Status: GetStatusFound,
+		LeaseID: leaseID,
+		Status:  GetStatusLeaseGranted,
 	}
 }
 

@@ -105,7 +105,7 @@ func TestMemtable_Set_OK(t *testing.T) {
 	assertEqualGetStatus(t, GetStatusFound, result.Status)
 }
 
-func TestMemtable_Set_Not_Affected_After_Invalidate_Affected(t *testing.T) {
+func TestMemtable_Set_Not_Affected_After_Invalidate(t *testing.T) {
 	m := New(1 << 20)
 	key1 := []byte("key1")
 
